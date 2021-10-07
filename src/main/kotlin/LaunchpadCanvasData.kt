@@ -1,0 +1,1 @@
+data class LaunchpadCanvasData(val lightUps: List<LightUp>)
