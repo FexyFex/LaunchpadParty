@@ -4,6 +4,7 @@ import util.Tick
 import window.Window
 import kotlin.reflect.KClass
 
+
 class Engine(ticksPerSecond: Int) {
     private val inputListener = KeyInputListener()
     private val window = Window("Launchpad Control", inputListener)

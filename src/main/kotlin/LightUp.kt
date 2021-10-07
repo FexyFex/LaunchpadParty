@@ -1,5 +1,1 @@
-import launchpad.Color
-import launchpad.NoteButton
-
-
-data class LightUp(val button: NoteButton, val color: Color)
+data class LightUp(val button: Byte, val color: Byte)

@@ -2,33 +2,30 @@ import input.midi.MidiInputListener
 import input.midi.events.note.MidiNoteOnEvent
 import input.midi.events.option.MidiOptionsButtonOnEvent
 import launchpad.Color
-import launchpad.NoteButton
 import launchpad.OptionButton
 
 
 class LaunchpadLEDPatternMaker(name: String) {
     private var recording = false
-    private val inputListener = MidiInputListener(name)
-    private val activeButtons = mutableMapOf<NoteButton, Color>()
-    private var buttonLastPressed: NoteButton? = null
+    private val inputListener = MidiInputListener(name).open()
+    private val activeButtons = mutableMapOf<Byte, Byte>()
+    private var buttonLastPressed: Byte? = null
 
-    val currentLightUpData: LaunchpadCanvasData
+    val currentLightUpData: LaunchpadCanvasData?
         get() {
-            if (!recording) throw Exception("bruh are you redarted?")
+            if (!recording) return null
             return LaunchpadCanvasData(activeButtons.map { LightUp(it.key, it.value) })
         }
 
     init {
         inputListener.on<MidiNoteOnEvent>(this) { event ->
             if (recording) {
-                val button = enumValues<NoteButton>().first { it.num == event.note }
-
-                if (activeButtons[button] != null)
-                    activeButtons.remove(button)
+                if (activeButtons[event.note] != null)
+                    activeButtons.remove(event.note)
                 else
-                    activeButtons[button] = Color.WHITE
+                    activeButtons[event.note] = Color.WHITE.num
 
-                buttonLastPressed = button
+                buttonLastPressed = event.note
             }
         }
 
@@ -39,17 +36,29 @@ class LaunchpadLEDPatternMaker(name: String) {
             val currentColor = activeButtons[buttonLastPressed!!] ?: throw Exception("what the fuck")
 
             when (button) {
-                OptionButton.UP ->
-                    activeButtons[buttonLastPressed!!] = enumValues<Color>().first { it.num == (currentColor.num + 16).toByte() }
+                OptionButton.UP -> {
+                    var target = currentColor + 16
+                    if (target > 127) target = 0 + (target - 127)
+                    activeButtons[buttonLastPressed!!] = target.toByte()
+                }
 
-                OptionButton.DOWN ->
-                    activeButtons[buttonLastPressed!!] = enumValues<Color>().first { it.num == (currentColor.num - 16).toByte() }
+                OptionButton.DOWN -> {
+                    var target = currentColor - 16
+                    if (target < 0) target += 127
+                    activeButtons[buttonLastPressed!!] = target.toByte()
+                }
 
-                OptionButton.RIGHT ->
-                    activeButtons[buttonLastPressed!!] = enumValues<Color>().first { it.num == (currentColor.num + 1).toByte() }
+                OptionButton.RIGHT -> {
+                    var target = currentColor + 1
+                    if (target > 127) target = 0
+                    activeButtons[buttonLastPressed!!] = target.toByte()
+                }
 
-                OptionButton.LEFT ->
-                    activeButtons[buttonLastPressed!!] = enumValues<Color>().first { it.num == (currentColor.num - 1).toByte() }
+                OptionButton.LEFT -> {
+                    var target = currentColor - 1
+                    if (target < 0) target = 127
+                    activeButtons[buttonLastPressed!!] = target.toByte()
+                }
 
                 else -> return@on
             }
@@ -58,7 +67,8 @@ class LaunchpadLEDPatternMaker(name: String) {
 
 
     fun startRecording() {
-        recording = true
+        if (!recording)
+            recording = true
     }
 
     fun finish(): LaunchpadCanvasData {
@@ -69,4 +79,7 @@ class LaunchpadLEDPatternMaker(name: String) {
         buttonLastPressed = null
         return data
     }
+
+
+    fun close() = inputListener.close()
 }
